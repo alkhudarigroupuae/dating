@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IUser extends Document {
   email: string;
+  password?: string; // Add password back as optional for hybrid auth
   name: string;
   currentChallenge?: string;
   authenticators: {
@@ -10,14 +11,6 @@ export interface IUser extends Document {
     counter: number;
     transports?: string[];
   }[];
-  // Push Notification Subscription
-  pushSubscription?: {
-    endpoint: string;
-    keys: {
-      p256dh: string;
-      auth: string;
-    };
-  };
   age: number;
   gender: 'male' | 'female' | 'other';
   interests: string[];
@@ -27,11 +20,19 @@ export interface IUser extends Document {
     type: string;
     coordinates: number[];
   };
+  pushSubscription?: {
+    endpoint: string;
+    keys: {
+        p256dh: string;
+        auth: string;
+    };
+  };
   createdAt: Date;
 }
 
 const UserSchema: Schema = new Schema({
   email: { type: String, required: true, unique: true },
+  password: { type: String }, // Optional for WebAuthn users
   name: { type: String, required: true },
   currentChallenge: { type: String },
   authenticators: [{
@@ -40,13 +41,6 @@ const UserSchema: Schema = new Schema({
     counter: { type: Number, required: true },
     transports: [{ type: String }],
   }],
-  pushSubscription: {
-    endpoint: { type: String },
-    keys: {
-      p256dh: { type: String },
-      auth: { type: String },
-    },
-  },
   age: { type: Number, required: true },
   gender: { type: String, enum: ['male', 'female', 'other'], required: true },
   interests: [{ type: String }],
@@ -55,6 +49,13 @@ const UserSchema: Schema = new Schema({
   location: {
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], index: '2dsphere' },
+  },
+  pushSubscription: {
+    endpoint: String,
+    keys: {
+        p256dh: String,
+        auth: String,
+    }
   },
 }, { timestamps: true });
 

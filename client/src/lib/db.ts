@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -27,7 +26,10 @@ async function dbConnect() {
     cached.promise = (async () => {
       let uri = MONGODB_URI;
 
+      // Only use Memory Server in Development mode
       if (process.env.NODE_ENV === 'development') {
+        const { MongoMemoryServer } = await import('mongodb-memory-server'); // Dynamic import to avoid bundling in prod
+        
         try {
             // Attempt to connect to local/provided URI first
             if (uri) {
@@ -47,7 +49,9 @@ async function dbConnect() {
       }
 
       if (!uri) {
-        throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+        throw new Error(
+            'Please define the MONGODB_URI environment variable inside .env.local (or Vercel Environment Variables)'
+        );
       }
 
       return mongoose.connect(uri, opts);

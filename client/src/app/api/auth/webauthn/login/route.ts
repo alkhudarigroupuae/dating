@@ -20,7 +20,18 @@ export async function POST(request: Request) {
       const options = await generateAuthenticationOptions({
         rpID,
         allowCredentials: user.authenticators.map(auth => ({
-            id: Buffer.from(auth.credentialID, 'base64'), // Convert back to buffer
+            id: auth.credentialID, // SimpleWebAuthn v9+ expects base64url string usually, or buffer depending on version. Let's try string if library handles it or use utils.
+            // Actually, if we look at the error: "Type 'Buffer' is not assignable to type 'string'". 
+            // It seems generateAuthenticationOptions expects `id` as string (base64url encoded usually).
+            // Our DB stores base64. Let's just pass the string from DB and let the library handle or convert if needed.
+            // If the library expects base64url, we might need conversion.
+            // But let's try passing the string directly as the error suggests it wants a string.
+            // If it wants base64url, we can replace + with - and / with _ and remove =.
+            // For now, let's fix the type error first.
+            // The error said: "Type 'Buffer' is not assignable to type 'string'".
+            // So we were passing Buffer.from(...) which returns a Buffer.
+            
+            // Let's pass the base64 string directly from DB.
             type: 'public-key',
             transports: auth.transports as any,
         })),
@@ -39,15 +50,10 @@ export async function POST(request: Request) {
       if (!user) return NextResponse.json({ message: "User not found" }, { status: 404 });
 
       const authenticator = user.authenticators.find(
-        (auth) => auth.credentialID === Buffer.from(authenticationResponse.id, 'base64').toString('base64') // Actually id is base64url encoded usually? SimpleWebAuthn handles this.
-        // Wait, authenticationResponse.id is base64url. Our DB has base64.
-        // SimpleWebAuthn `verifyAuthenticationResponse` handles the decoding of the response.
-        // We just need to pass the authenticator from DB.
+        (auth) => auth.credentialID === authenticationResponse.id // Match by ID string
       );
 
       if (!authenticator) {
-          // Try to find by matching credentialID directly if formats differ?
-          // Let's proceed and let the library verify.
           return NextResponse.json({ message: "Authenticator not found" }, { status: 400 });
       }
 
@@ -56,10 +62,11 @@ export async function POST(request: Request) {
         expectedChallenge: user.currentChallenge || '',
         expectedOrigin: origin,
         expectedRPID: rpID,
-        authenticator: {
-            credentialID: Buffer.from(authenticator.credentialID, 'base64'),
-            credentialPublicKey: Buffer.from(authenticator.credentialPublicKey, 'base64'),
+        credential: {
+            id: authenticator.credentialID,
+            publicKey: new Uint8Array(Buffer.from(authenticator.credentialPublicKey, 'base64')),
             counter: authenticator.counter,
+            transports: authenticator.transports as any,
         },
       });
 

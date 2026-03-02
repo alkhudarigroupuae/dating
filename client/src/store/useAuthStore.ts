@@ -5,8 +5,9 @@ interface User {
   _id: string;
   name: string;
   email: string;
-  photos: string[];
-  // add other fields as needed
+  age?: number;
+  bio?: string;
+  photos?: string[];
 }
 
 interface AuthState {
@@ -36,8 +37,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { data } = await api.get('/users/me');
       set({ user: data });
     } catch (error) {
-      console.error('Failed to fetch user', error);
-      // If fetch fails (e.g. 401), maybe logout
       localStorage.removeItem('token');
       set({ token: null, user: null });
     }

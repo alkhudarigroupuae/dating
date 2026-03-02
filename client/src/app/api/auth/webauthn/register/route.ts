@@ -70,11 +70,12 @@ export async function POST(request: Request) {
       });
 
       if (verification.verified && verification.registrationInfo) {
-        const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+        const { credential } = verification.registrationInfo;
+        const { id, publicKey, counter } = credential;
         
         user.authenticators.push({
-            credentialID: Buffer.from(credentialID).toString('base64'),
-            credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
+            credentialID: id,
+            credentialPublicKey: Buffer.from(publicKey).toString('base64'),
             counter,
         });
         user.currentChallenge = undefined; // Clear challenge
