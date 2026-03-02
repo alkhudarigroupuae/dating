@@ -22,28 +22,17 @@ export async function POST(request: Request) {
     }
     
     const userId = decoded.id;
-
     const { searchParams } = new URL(request.url);
     const filename = searchParams.get('filename');
 
-    let blob;
-
-    // Check if it's a raw body upload (filename in query)
-    if (filename && request.body) {
-        blob = await put(filename, request.body, {
-            access: 'public',
-        });
-    } else {
-        // Fallback to FormData
-        const form = await request.formData();
-        const file = form.get('file') as File;
-        if (!file) {
-          return NextResponse.json({ message: 'No file provided' }, { status: 400 });
-        }
-        blob = await put(file.name, file, {
-          access: 'public',
-        });
+    if (!filename || !request.body) {
+        return NextResponse.json({ message: "Filename or body missing" }, { status: 400 });
     }
+
+    // Upload to Vercel Blob
+    const blob = await put(filename, request.body, {
+      access: 'public',
+    });
 
     // Update User in DB
     const user = await User.findById(userId);
