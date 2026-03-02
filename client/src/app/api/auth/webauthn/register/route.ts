@@ -4,12 +4,17 @@ import User from '@/models/User';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 
 const rpName = 'LoveConnect';
-const rpID = 'localhost'; // Change this in production
-const origin = `http://${rpID}:3001`; // Change port if needed
 
 export async function POST(request: Request) {
   try {
     await dbConnect();
+    
+    // Dynamic RP ID and Origin for Vercel support
+    const host = request.headers.get('host') || 'localhost:3001';
+    const rpID = host.split(':')[0]; // Remove port if present
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const origin = `${protocol}://${host}`;
+
     const body = await request.json();
     const { action, email } = body;
 
