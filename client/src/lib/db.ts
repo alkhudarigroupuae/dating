@@ -21,14 +21,17 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000, // Fail fast in serverless
+      socketTimeoutMS: 45000, // Close sockets after 45s
+      family: 4 // Use IPv4 to avoid Vercel timeouts
     };
 
     cached.promise = (async () => {
       let uri = MONGODB_URI;
 
-      // Only use Memory Server in Development mode
-      if (process.env.NODE_ENV === 'development') {
-        const { MongoMemoryServer } = await import('mongodb-memory-server'); // Dynamic import to avoid bundling in prod
+      // Use Memory Server in Development OR if Local Build fails
+      if (process.env.NODE_ENV === 'development' || (!process.env.VERCEL && process.env.NODE_ENV === 'production')) {
+        const { MongoMemoryServer } = await import('mongodb-memory-server'); 
         
         try {
             // Attempt to connect to local/provided URI first
@@ -40,7 +43,7 @@ async function dbConnect() {
             console.log("Local MongoDB not reachable, falling back to In-Memory DB...");
         }
 
-        // Fallback to Memory Server if no URI or connection failed
+        // Fallback to Memory Server
         if (!cached.mongod) {
             cached.mongod = await MongoMemoryServer.create();
             uri = cached.mongod.getUri();

@@ -1,0 +1,16 @@
+# متغيرات البيئة المطلوبة للنشر على Vercel
+# قم بنسخ كل متغير وأضفه في Vercel Dashboard -> Settings -> Environment Variables
+
+# 1. رابط قاعدة البيانات (يجب عليك الحصول عليه من MongoDB Atlas)
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.example.mongodb.net/loveconnect
+
+# 2. المفتاح السري (تم توليده لك)
+JWT_SECRET=fd4ed9824acc9c43d817a725f3c51826fc4b532b7ca83f16c2b0db1644c721c3
+
+# 3. مفاتيح الإشعارات (جاهزة)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=BEQRmeN2Ae3Nktv7dR1dfdU4JcfCYG9dYAUlbbGbbswC1TOEDT5yMPjebsm8hvHqDUOuZNa0iVdSZRjjBKWCj1g
+VAPID_PRIVATE_KEY=E52IQbhOcKniKEdc02cSKcRFXgdnby5L6bujIWyRP5s
+VAPID_SUBJECT=mailto:admin@loveconnect.com
+
+# 4. مفتاح رفع الصور (تحصل عليه بعد إنشاء Blob Store في Vercel)
+BLOB_READ_WRITE_TOKEN=<انسخ الرمز من Vercel Storage>
