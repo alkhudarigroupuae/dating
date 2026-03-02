@@ -40,6 +40,17 @@ export default function ClientLayout({
 
   // Register Service Worker & Subscribe to Push
   useEffect(() => {
+    // FORCE UNREGISTER FOR DEBUGGING
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+                console.log('SW Unregistered');
+            }
+        });
+    }
+
+    /* 
     if ('serviceWorker' in navigator && user) {
         const registerSW = async () => {
             try {
@@ -70,6 +81,7 @@ export default function ClientLayout({
         };
         registerSW();
     }
+    */
   }, [user]);
 
   // Try to fetch user while splash is showing

@@ -17,12 +17,39 @@ export default function Register() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     age: '',
     gender: 'male'
   });
 
-  const handleWebAuthnRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+        // Standard Password Registration
+        const { data } = await api.post('/auth/register', {
+            email: formData.email,
+            password: formData.password,
+            name: formData.name,
+            age: Number(formData.age),
+            gender: formData.gender
+        });
+
+        if (data.token) {
+            login(data.token, data.result);
+            router.push('/matches');
+        }
+    } catch (err: any) {
+        console.error(err);
+        setError(err.response?.data?.message || err.message || 'Registration failed');
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleWebAuthnRegister = async () => {
     setError('');
     setLoading(true);
 
@@ -47,20 +74,14 @@ export default function Register() {
       });
 
       if (verification.verified) {
-        // Auto login after registration
-        const { data: loginData } = await api.post('/auth/login', { 
-            // We need a way to auto-login without password or prompt WebAuthn login immediately
-            // For now, let's redirect to login page or handle auto-login logic
-            // Ideally we should issue a token upon successful registration verification
-        });
-        // Actually, let's just ask them to login for security flow or
-        // modify verify route to return token. 
-        // For UX, let's push to login for now.
+        // For simplicity in this demo, we ask them to login after registration
+        // or we could auto-login if the backend supported it.
+        alert('Registration successful! Please login.');
         router.push('/login');
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Registration failed');
+      setError('Biometric registration failed. Please use password.');
     } finally {
       setLoading(false);
     }
@@ -90,7 +111,7 @@ export default function Register() {
             </motion.div>
         )}
 
-        <form onSubmit={handleWebAuthnRegister} className="space-y-5">
+        <form onSubmit={handleRegister} className="space-y-5">
             <div className="space-y-4">
                 <input 
                   type="text" 
@@ -108,14 +129,23 @@ export default function Register() {
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                 />
+                <input 
+                  type="password" 
+                  placeholder="Password" 
+                  required
+                  className="w-full p-4 bg-dark-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-gray-600"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                />
                 <div className="flex gap-4">
                     <input 
-                        type="number" 
-                        placeholder="Age" 
-                        required
-                        className="w-1/3 p-4 bg-dark-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-gray-600"
-                        value={formData.age}
-                        onChange={(e) => setFormData({...formData, age: e.target.value})}
+                      type="number" 
+                      placeholder="Age" 
+                      required
+                      min="18"
+                      className="w-1/3 p-4 bg-dark-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-gray-600"
+                      value={formData.age}
+                      onChange={(e) => setFormData({...formData, age: e.target.value})}
                     />
                     <select 
                         className="w-2/3 p-4 bg-dark-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-gray-300"
@@ -132,23 +162,40 @@ export default function Register() {
             <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full p-4 bg-primary rounded-xl font-bold text-white shadow-lg shadow-primary/25 hover:bg-primary-hover hover:shadow-primary/40 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-6"
+                className="w-full bg-gradient-to-r from-primary to-orange-600 text-white p-4 rounded-xl font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2"
             >
-                {loading ? (
-                    <Loader2 className="animate-spin" />
-                ) : (
-                    <>
-                        <Fingerprint size={24} />
-                        <span>Register with Face ID / Touch ID</span>
-                    </>
-                )}
+                {loading ? <Loader2 className="animate-spin" /> : 'Register with Password'}
+            </button>
+
+            <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-gray-700"></div>
+                <span className="flex-shrink-0 mx-4 text-gray-500 text-xs">OR USE BIOMETRICS</span>
+                <div className="flex-grow border-t border-gray-700"></div>
+            </div>
+
+            <button 
+                type="button"
+                onClick={handleWebAuthnRegister}
+                disabled={loading || !formData.email || !formData.name}
+                className="w-full bg-dark-700 text-white p-4 rounded-xl font-bold border border-dark-600 hover:bg-dark-600 transition-all flex items-center justify-center gap-2"
+            >
+                <Fingerprint size={20} />
+                Register with Face ID / Touch ID
             </button>
         </form>
-        
-        <p className="mt-8 text-center text-gray-500 text-sm">
-            Already a member? <a href="/login" className="text-primary hover:text-primary-hover font-medium transition-colors">Sign In</a>
-        </p>
+
+        <div className="mt-8 text-center">
+            <p className="text-gray-400 text-sm">
+                Already have an account?{' '}
+                <button 
+                    onClick={() => router.push('/login')}
+                    className="text-primary hover:text-orange-500 font-semibold transition-colors"
+                >
+                    Login here
+                </button>
+            </p>
+        </div>
       </motion.div>
     </div>
-  )
+  );
 }
