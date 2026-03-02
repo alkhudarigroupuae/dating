@@ -1,6 +1,6 @@
 "use client"
-import React, { useEffect, useState } from 'react';
-import { Settings, Edit, Shield, Crown, LogOut, Bell, BellOff } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Settings, Edit, Shield, Crown, LogOut, Bell, BellOff, Camera } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useRouter } from 'next/navigation';
@@ -27,6 +27,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [pushSupported, setPushSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const inputFileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchUser().finally(() => setLoading(false));
@@ -73,11 +75,56 @@ export default function Profile() {
     router.push('/login');
   };
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.length) return;
+    
+    const file = event.target.files[0];
+    setUploading(true);
+
+    try {
+        const response = await fetch(`/api/upload?filename=${file.name}`, {
+            method: 'POST',
+            body: file,
+            headers: {
+                'Authorization': `Bearer ${useAuthStore.getState().token}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Upload failed');
+        
+        const newBlob = await response.json();
+        // Optimistically update user photos
+        if (user) {
+            useAuthStore.setState({
+                user: {
+                    ...user,
+                    photos: [newBlob.url, ...(user.photos || [])]
+                }
+            });
+        }
+        alert('Photo uploaded!');
+    } catch (error) {
+        console.error(error);
+        alert('Failed to upload photo');
+    } finally {
+        setUploading(false);
+    }
+  };
+
   if (loading) return <div className="flex justify-center items-center h-full text-white">Loading...</div>;
   if (!user) return <div className="text-white text-center mt-10">Please login</div>;
 
   return (
     <div className="h-full flex flex-col bg-dark-900 overflow-y-auto">
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        ref={inputFileRef} 
+        className="hidden" 
+        accept="image/*"
+        onChange={handleFileChange}
+      />
+
       {/* Header / Cover */}
       <div className="relative h-48 bg-gradient-to-r from-primary to-orange-600">
         <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2">
@@ -86,14 +133,22 @@ export default function Profile() {
                 animate={{ scale: 1 }}
                 className="relative"
             >
-                <div className="w-32 h-32 rounded-full border-4 border-dark-900 overflow-hidden bg-dark-800 shadow-xl">
+                <div className="w-32 h-32 rounded-full border-4 border-dark-900 overflow-hidden bg-dark-800 shadow-xl relative group cursor-pointer" onClick={() => inputFileRef.current?.click()}>
                     <img 
                         src={user.photos?.[0] || "https://via.placeholder.com/400"} 
                         alt="Profile" 
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover transition-opacity ${uploading ? 'opacity-50' : 'group-hover:opacity-75'}`}
                     />
+                    {uploading && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                         <Camera size={32} className="text-white drop-shadow-md" />
+                    </div>
                 </div>
-                <div className="absolute bottom-0 right-0 bg-blue-500 p-1.5 rounded-full border-2 border-dark-900 shadow-sm">
+                <div className="absolute bottom-0 right-0 bg-blue-500 p-1.5 rounded-full border-2 border-dark-900 shadow-sm z-10">
                     <Shield size={16} className="text-white" fill="currentColor" />
                 </div>
             </motion.div>

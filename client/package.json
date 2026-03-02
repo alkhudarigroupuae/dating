@@ -11,6 +11,7 @@
   "dependencies": {
     "@simplewebauthn/browser": "^13.2.2",
     "@simplewebauthn/server": "^13.2.3",
+    "@vercel/blob": "^0.23.4",
     "axios": "^1.6.2",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.0.0",
